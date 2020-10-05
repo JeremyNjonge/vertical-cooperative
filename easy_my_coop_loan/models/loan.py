@@ -178,7 +178,8 @@ class LoanIssue(models.Model):
         accrued_interest = 0
         accrued_net_interest = 0
         accrued_taxes = 0
-        for year in range(1, int(self.loan_term) + 1):
+        loan_term = self.loan_term / 12
+        for year in range(1, int(loan_term) + 1):
             interest = accrued_amount * (line.loan_issue_id.rate / 100)
             accrued_amount += interest
             taxes_amount = interest * (self.taxes_rate / 100)
@@ -200,6 +201,15 @@ class LoanIssue(models.Model):
     def compute_loan_interest(self):
         self.ensure_one()
 
+        if not (self.loan_term / 12).is_integer():
+            # TODO Handle this case
+            raise NotImplementedError(
+                _(
+                    "Calculation on non entire year "
+                    "hasn't been implemented yet"
+                )
+            )
+
         if self.interest_payment == "end":
             due_date = self.term_date
         else:
@@ -217,12 +227,3 @@ class LoanIssue(models.Model):
             }
             self.get_interest_vals(line, vals)
 
-            rounded_term = int(self.loan_term)
-            if self.loan_term - rounded_term > 0:
-                # TODO Handle this case
-                raise NotImplementedError(
-                    _(
-                        "Calculation on non entire year "
-                        "hasn't been implemented yet"
-                    )
-                )
