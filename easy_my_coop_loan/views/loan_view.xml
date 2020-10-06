@@ -102,6 +102,7 @@
                             <field name="loan_start_date"/>
                             <field name="term_date"/>
                             <field name="loan_term"/>
+                            <field name="capital_payment" widget="selection"/>
                             <field name="interest_payment" widget="selection"/>
                             <field name="interest_payment_info"
                                    attrs="{'invisible':[('interest_payment','not in',['end','yearly'])]}"/>

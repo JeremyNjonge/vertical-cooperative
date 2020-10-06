@@ -66,8 +66,19 @@ class LoanIssue(models.Model):
         compute="_compute_subscribed_amount",
         currency_field="company_currency_id",
     )
+    capital_payment = fields.Selection(
+        [
+            ("end", "End"),
+            ("yearly", "Yearly")
+        ],
+        string="Capital reimbursement"
+    )
     interest_payment = fields.Selection(
-        [("end", "End"), ("yearly", "Yearly")], string="Interest payment"
+        [
+            ("end", "End"),
+            ("yearly", "Yearly")
+        ],
+        string="Interest payment"
     )
     interest_payment_info = fields.Char(string="Yearly payment on")
     loan_issue_lines = fields.One2many(
@@ -173,12 +184,13 @@ class LoanIssue(models.Model):
         self.write({"state": "closed"})
 
     def get_interest_vals(self, line, vals):
-        interest_obj = self.env["loan.interest.line"]
+        list_vals = []
         accrued_amount = line.amount
         accrued_interest = 0
         accrued_net_interest = 0
         accrued_taxes = 0
         loan_term = self.loan_term / 12
+
         for year in range(1, int(loan_term) + 1):
             interest = accrued_amount * (line.loan_issue_id.rate / 100)
             accrued_amount += interest
@@ -195,7 +207,9 @@ class LoanIssue(models.Model):
             vals["accrued_net_interest"] = accrued_net_interest
             vals["accrued_taxes"] = accrued_taxes
             vals["name"] = year
-            interest_obj.create(vals)
+            list_vals.append(vals.copy())
+
+        self.env["loan.interest.line"].create(list_vals)
 
     @api.multi
     def compute_loan_interest(self):
