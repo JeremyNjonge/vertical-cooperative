@@ -9,12 +9,23 @@ class LoanInterestLine(models.Model):
     _name = "loan.interest.line"
     _description = "Loan Interest Line"
 
-    name = fields.Integer(string="Year", required=True)
+    name = fields.Integer(
+        string="Year",
+        required=True
+    )
+    loan_issue_id = fields.Many2one(
+        related="issue_line.loan_issue_id",
+        store=True,
+        readlonly=True)
     issue_line = fields.Many2one(
-        "loan.issue.line", string="Subscribed loan", required=True
+        "loan.issue.line",
+        string="Subscribed loan",
+        required=True
     )
     partner_id = fields.Many2one(
-        related="issue_line.partner_id", store=True, readlonly=True
+        related="issue_line.partner_id",
+        store=True,
+        readlonly=True
     )
     amount = fields.Monetary(
         related="issue_line.amount",
@@ -32,7 +43,10 @@ class LoanInterestLine(models.Model):
         currency_field="company_currency_id",
         readonly=True,
     )
-    taxes_rate = fields.Float(string="Taxes on interest", required=True)
+    taxes_rate = fields.Float(
+        string="Taxes on interest",
+        required=True
+    )
     taxes_amount = fields.Monetary(
         string="Taxes amount",
         currency_field="company_currency_id",
@@ -57,6 +71,10 @@ class LoanInterestLine(models.Model):
         string="Accrued taxes to pay",
         currency_field="company_currency_id",
         readonly=True,
+    )
+    due_amount = fields.Monetary(
+        string="Due amount",
+        currency_field="company_currency_id"
     )
     due_date = fields.Date(string="Due date")
     company_currency_id = fields.Many2one(

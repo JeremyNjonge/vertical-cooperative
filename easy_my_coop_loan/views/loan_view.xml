@@ -110,7 +110,7 @@
                     </group>
                     <notebook>
                         <page name="lines" string="Lines">
-                            <field name="loan_issue_lines" context="{'default_loan_issue_id': id}">
+                            <field name="loan_issue_lines" context="{'default_loan_issue_id': id}" attrs="{'readonly':[('state', '!=', 'ongoing')]}">
                                 <tree delete="false">
                                     <field name="name"/>
                                     <field name="partner_id"/>

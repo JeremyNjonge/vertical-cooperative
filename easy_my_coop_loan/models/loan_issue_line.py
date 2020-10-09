@@ -40,6 +40,8 @@ class LoanIssueLine(models.Model):
         default=lambda self: datetime.strftime(datetime.now(), "%Y-%m-%d"),
         required=True,
     )
+    payment_date = fields.Date(
+        string="Payment date")
     amount = fields.Monetary(
         string="Subscribed amount",
         currency_field="company_currency_id",
@@ -127,4 +129,7 @@ class LoanIssueLine(models.Model):
             loan_email_template = self.get_confirm_paid_email_template()
             loan_email_template.sudo().send_mail(line.id, force_send=False)
 
-            line.write({"state": "paid"})
+            vals = {"state": "paid"}
+            if not line.payment_date:
+                vals["payement_date"] = fields.Date.today()
+            line.write(vals)

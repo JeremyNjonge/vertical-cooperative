@@ -66,6 +66,7 @@
                                     <field name="amount"/>
                                     <field name="accrued_amount"/>
                                     <field name="interest"/>
+                                    <field name="accrued_interest"/>
                                     <field name="net_interest"/>
                                     <field name="taxes_amount"/>
                                     <field name="due_amount"/>

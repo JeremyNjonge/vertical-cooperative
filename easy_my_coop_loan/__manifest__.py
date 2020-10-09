@@ -4,11 +4,11 @@
 
 {
     "name": "Easy My Coop Bond and Subordinated Loan Issues",
-    "version": "12.0.1.0.1",
+    "version": "12.0.2.0.1",
     "depends": ["easy_my_coop"],
     "author": "Coop IT Easy SCRLfs",
     "category": "Cooperative management",
-    "website": "http://www.coopiteasy.be",
+    "website": "https://www.coopiteasy.be",
     "license": "AGPL-3",
     "summary": """
     This module allows to manage the bonds and
@@ -17,6 +17,8 @@
     "data": [
         "security/ir.model.access.csv",
         "views/loan_view.xml",
+        "views/loan_line_view.xml",
+        "views/loan_interest_lines_view.xml",
         "views/partner_view.xml",
         "views/menus.xml",
         "data/mail_template_data.xml",
