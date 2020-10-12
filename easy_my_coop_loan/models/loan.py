@@ -4,6 +4,10 @@
 
 import logging
 
+from dateutil.relativedelta import relativedelta
+from datetime import date
+import calendar
+
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
@@ -183,22 +187,75 @@ class LoanIssue(models.Model):
         self.ensure_one()
         self.write({"state": "closed"})
 
+    def get_number_of_days(self):
+        if calendar.isleap(date.today().year):
+            return 366
+        else:
+            return 365
+
     def get_interest_vals(self, line, vals):
         list_vals = []
         accrued_amount = line.amount
         accrued_interest = 0
         accrued_net_interest = 0
         accrued_taxes = 0
-        loan_term = self.loan_term / 12
+        taxes_amount = 0
+        diff_days = 0
 
-        for year in range(1, int(loan_term) + 1):
-            interest = accrued_amount * (line.loan_issue_id.rate / 100)
-            accrued_amount += interest
-            taxes_amount = interest * (self.taxes_rate / 100)
-            net_interest = interest - taxes_amount
-            accrued_interest += interest
+        loan_term = int(self.loan_term / 12)
+
+        # if payment_date is first day of the month we take the current month
+        if line.payment_date.day == 1:
+            start_date = line.payment_date
+        else:
+            start_date = line.payment_date + relativedelta(months=+1, day=1)
+
+            # we calculate the number of day between payment date
+            # and the end of the month of the payment
+            diff_days = ((start_date - relativedelta(days=1)) -
+                         line.payment_date).days
+
+        rate = self.rate / 100
+
+        # take leap year into account
+        days = self.get_number_of_days()
+        interim_amount = line.amount * rate * (diff_days / days)
+
+        due_date = start_date + relativedelta(years=+loan_term)
+
+        for year in range(1, loan_term + 1):
+            interest = accrued_amount * rate
+            due_amount = 0
+            if self.capital_payment == "end":
+                if year == loan_term:
+                    due_amount = line.amount
+            else:
+                due_amount = line.amount * (loan_term / 100)
+                accrued_amount -= due_amount
+
+            if self.interest_payment == "end":
+                accrued_interest += interest
+                accrued_amount += interest
+                net_interest = 0
+                if year == loan_term:
+                    taxes_amount = accrued_interest * (self.taxes_rate / 100)
+                    net_interest = accrued_interest - taxes_amount
+                    due_amount += net_interest
+            else:
+                due_date = start_date + relativedelta(years=+year)
+                taxes_amount = interest * (self.taxes_rate / 100)
+                net_interest = interest - taxes_amount
+                due_amount += net_interest
+                accrued_interest = interest
+
+            if year == 1:
+                interest += interim_amount
+                accrued_interest = interest
+
             accrued_net_interest += net_interest
             accrued_taxes += taxes_amount
+            vals["due_date"] = due_date
+            vals["due_amount"] = due_amount
             vals["interest"] = interest
             vals["net_interest"] = net_interest
             vals["taxes_amount"] = taxes_amount
@@ -214,8 +271,8 @@ class LoanIssue(models.Model):
     @api.multi
     def compute_loan_interest(self):
         self.ensure_one()
-
-        if not (self.loan_term / 12).is_integer():
+        loan_term_year = self.loan_term / 12
+        if not (loan_term_year).is_integer():
             # TODO Handle this case
             raise NotImplementedError(
                 _(
@@ -224,20 +281,13 @@ class LoanIssue(models.Model):
                 )
             )
 
-        if self.interest_payment == "end":
-            due_date = self.term_date
-        else:
-            raise NotImplementedError(
-                _("Interest payment by year hasn't been " "implemented yet")
-            )
         for line in self.loan_issue_lines:
             # TODO remove this line
             line.interest_lines.unlink()
             # Please Do not Forget
-            vals = {
-                "issue_line": line.id,
-                "due_date": due_date,
-                "taxes_rate": self.taxes_rate,
-            }
-            self.get_interest_vals(line, vals)
-
+            if line.state == "paid":
+                vals = {
+                    "issue_line": line.id,
+                    "taxes_rate": self.taxes_rate,
+                }
+                self.get_interest_vals(line, vals)
