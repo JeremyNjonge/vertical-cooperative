@@ -2,7 +2,9 @@
 #   Houssine BAKKALI <houssine@coopiteasy.be>
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
-from datetime import datetime
+import calendar
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models
 
@@ -37,7 +39,7 @@ class LoanIssueLine(models.Model):
     )
     date = fields.Date(
         string="Subscription date",
-        default=lambda self: datetime.strftime(datetime.now(), "%Y-%m-%d"),
+        default=lambda self: date.strftime(date.today(), "%Y-%m-%d"),
         required=True,
     )
     payment_date = fields.Date(
@@ -133,3 +135,99 @@ class LoanIssueLine(models.Model):
             if not line.payment_date:
                 vals["payement_date"] = fields.Date.today()
             line.write(vals)
+
+    def get_number_of_days(self, year):
+        if calendar.isleap(year):
+            return 366
+        else:
+            return 365
+
+    @api.multi
+    def action_compute_interest(self):
+        for line in self:
+            loan_issue = line.loan_issue_id
+            vals = {
+                "issue_line": line.id,
+                "taxes_rate": loan_issue.taxes_rate,
+            }
+            list_vals = []
+            accrued_amount = self.amount
+            accrued_interest = 0
+            accrued_net_interest = 0
+            accrued_taxes = 0
+            taxes_amount = 0
+            diff_days = 0
+
+            # TODO remove this line
+            line.interest_lines.unlink()
+            # Please Do not Forget
+
+            loan_term = int(loan_issue.loan_term / 12)
+
+            # if payment_date is first day of the month
+            # we take the current month
+            if line.payment_date.day == 1:
+                start_date = line.payment_date
+            else:
+                start_date = line.payment_date + relativedelta(months=+1,
+                                                               day=1)
+
+                # we calculate the number of day between payment date
+                # and the end of the month of the payment
+                diff_days = ((start_date - relativedelta(days=1)) -
+                             line.payment_date).days
+
+            rate = loan_issue.rate / 100
+
+            # take leap year into account
+            days = self.get_number_of_days(line.payment_date.year)
+            interim_amount = line.amount * rate * (diff_days / days)
+
+            due_date = start_date + relativedelta(years=+loan_term)
+
+            for year in range(1, loan_term + 1):
+                interest = accrued_amount * rate
+                due_amount = 0
+                if loan_issue.capital_payment == "end":
+                    if year == loan_term:
+                        due_amount = line.amount
+                else:
+                    due_amount = line.amount * (loan_term / 100)
+                    accrued_amount -= due_amount
+
+                if loan_issue.interest_payment == "end":
+                    accrued_interest += interest
+                    accrued_amount += interest
+                    net_interest = 0
+                    if year == loan_term:
+                        taxes_amount = (accrued_interest *
+                                        (loan_issue.taxes_rate / 100)
+                                        )
+                        net_interest = accrued_interest - taxes_amount
+                        due_amount += net_interest
+                else:
+                    due_date = start_date + relativedelta(years=+year)
+                    taxes_amount = interest * (loan_issue.taxes_rate / 100)
+                    net_interest = interest - taxes_amount
+                    due_amount += net_interest
+                    accrued_interest = interest
+
+                if year == 1:
+                    interest += interim_amount
+                    accrued_interest = interest
+
+                accrued_net_interest += net_interest
+                accrued_taxes += taxes_amount
+                vals["due_date"] = due_date
+                vals["due_amount"] = due_amount
+                vals["interest"] = interest
+                vals["net_interest"] = net_interest
+                vals["taxes_amount"] = taxes_amount
+                vals["accrued_amount"] = accrued_amount
+                vals["accrued_interest"] = accrued_interest
+                vals["accrued_net_interest"] = accrued_net_interest
+                vals["accrued_taxes"] = accrued_taxes
+                vals["name"] = year
+                list_vals.append(vals.copy())
+
+            self.env["loan.interest.line"].create(list_vals)

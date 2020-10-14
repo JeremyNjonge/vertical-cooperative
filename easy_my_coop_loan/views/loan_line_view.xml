@@ -41,6 +41,9 @@
                             type="object" states="cancelled"/>
                     <button name="action_paid" string="Paid"
                             type="object" states="waiting"/>
+                    <button name="action_compute_interest" string="Compute interest"
+                            type="object" states="paid"/>
+                            
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>
