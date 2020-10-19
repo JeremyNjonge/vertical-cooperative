@@ -3,7 +3,7 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
 {
-    "name": "Easy My Coop Bond and Subordinated Loan Issues",
+    "name": "Easy My Coop Loan Issues Management",
     "version": "12.0.2.0.1",
     "depends": ["easy_my_coop"],
     "author": "Coop IT Easy SCRLfs",
@@ -22,6 +22,8 @@
         "views/partner_view.xml",
         "views/menus.xml",
         "data/mail_template_data.xml",
+        "report/loan_report.xml",
+        "report/loan_issue_line_report.xml",
     ],
     "demo": ["demo/coop.xml"],
     "installable": True,

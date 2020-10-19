@@ -20,7 +20,12 @@ class LoanIssueLine(models.Model):
         for line in self:
             line.amount = line.face_value * line.quantity
 
-    name = fields.Char(string="Reference")
+    reference = fields.Char(
+        string="Reference",
+        copy=False,
+        readonly=True,
+        states={'draft': [('readonly', False)]}
+    )
     loan_issue_id = fields.Many2one(
         "loan.issue", string="Loan issue", required=True
     )
@@ -35,7 +40,9 @@ class LoanIssueLine(models.Model):
         readonly=True,
     )
     partner_id = fields.Many2one(
-        "res.partner", string="Subscriber", required=True
+        "res.partner",
+        string="Subscriber",
+        required=True
     )
     date = fields.Date(
         string="Subscription date",
@@ -127,14 +134,14 @@ class LoanIssueLine(models.Model):
 
     @api.multi
     def action_paid(self):
+        loan_email_template = self.get_confirm_paid_email_template()
         for line in self:
-            loan_email_template = self.get_confirm_paid_email_template()
-            loan_email_template.sudo().send_mail(line.id, force_send=False)
-
             vals = {"state": "paid"}
             if not line.payment_date:
-                vals["payement_date"] = fields.Date.today()
+                vals["payment_date"] = fields.Date.today()
             line.write(vals)
+            line.action_compute_interest()
+            loan_email_template.sudo().send_mail(line.id, force_send=False)
 
     def get_number_of_days(self, year):
         if calendar.isleap(year):
@@ -158,9 +165,18 @@ class LoanIssueLine(models.Model):
             taxes_amount = 0
             diff_days = 0
 
-            # TODO remove this line
-            line.interest_lines.unlink()
-            # Please Do not Forget
+            # In case of a recompute is done. Only the interest lines
+            # in the future will be deleted. We also needed to determine
+            # from which year we'll have to regenerate the lines.
+            # Through the beautiful mind of Houssine, we implemented
+            # a small piece code to allows it.
+            today = fields.Date.today()
+            posted_lines = line.interest_lines.filtered(
+                            lambda r: r.state == "paid" or
+                            r.due_date < today)
+            futur_lines = line.interest_lines - posted_lines
+            start_to_line = len(posted_lines) + 1
+            futur_lines.unlink()
 
             loan_term = int(loan_issue.loan_term / 12)
 
@@ -228,6 +244,7 @@ class LoanIssueLine(models.Model):
                 vals["accrued_net_interest"] = accrued_net_interest
                 vals["accrued_taxes"] = accrued_taxes
                 vals["name"] = year
-                list_vals.append(vals.copy())
+                if year >= start_to_line:
+                    list_vals.append(vals.copy())
 
             self.env["loan.interest.line"].create(list_vals)

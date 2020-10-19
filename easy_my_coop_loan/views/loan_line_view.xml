@@ -11,9 +11,8 @@
         <field name="model">loan.issue.line</field>
         <field name="arch" type="xml">
             <tree string="Loans">
-                <field name="name"/>
-                <field name="loan_issue_id"/>
                 <field name="partner_id"/>
+                <field name="loan_issue_id"/>
                 <field name="quantity"/>
                 <field name="face_value"/>
                 <field name="amount"/>
@@ -34,13 +33,13 @@
                     <button name="action_request_payment"
                             string="Request Payment"
                             type="object" states="subscribed"/>
-                    <button name="action_cancel" string="Cancel" type="object"
-                            states="draft,subscribed,waiting"
-                            confirm="Are you sure you want to cancel this loan subscription ?"/>
                     <button name="action_draft" string="Set to draft"
                             type="object" states="cancelled"/>
                     <button name="action_paid" string="Paid"
                             type="object" states="waiting"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            states="draft,subscribed,waiting"
+                            confirm="Are you sure you want to cancel this loan subscription ?"/>
                     <button name="action_compute_interest" string="Compute interest"
                             type="object" states="paid"/>
                             
@@ -49,15 +48,15 @@
                 <sheet>
                     <group>
                         <group>
+                            <field name="partner_id"/>
                             <field name="loan_issue_id"/>
-                            <field name="name"/>
                             <field name="quantity"/>
                             <field name="face_value"/>
                         </group>
                         <group>
                             <field name="date"/>
                             <field name="payment_date"/>
-                            <field name="partner_id"/>
+                            <field name="reference"/>
                             <field name="amount"/>
                         </group>
                     </group>
