@@ -20,6 +20,9 @@ class LoanIssueLine(models.Model):
         for line in self:
             line.amount = line.face_value * line.quantity
 
+    name = fields.Char(
+        String="Name"
+    )
     reference = fields.Char(
         string="Reference",
         copy=False,
