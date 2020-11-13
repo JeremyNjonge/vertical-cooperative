@@ -35,7 +35,7 @@ class LoanIssueLine(models.Model):
     interest_lines = fields.One2many(
         "loan.interest.line", "issue_line", string="Interest lines"
     )
-    quantity = fields.Integer(string="quantity", required=True)
+    quantity = fields.Integer(string="Quantity", required=True)
     face_value = fields.Monetary(
         related="loan_issue_id.face_value",
         currency_field="company_currency_id",
