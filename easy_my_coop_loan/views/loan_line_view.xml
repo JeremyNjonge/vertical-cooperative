@@ -61,7 +61,7 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Interest lines">
+                        <page name="interest_lines" string="Interest lines">
                             <field name="interest_lines">
                                 <tree delete="false" create="false">
                                     <field name="name"/>
