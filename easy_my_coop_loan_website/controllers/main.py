@@ -39,6 +39,12 @@ class WebsiteLoanIssueSubscription(http.Controller):
             or not partner.phone
         ):
             return False
+        if partner.is_company:
+            if (
+                not partner.company_name
+                or not partner.vat
+            ):
+                return False
         return True
 
     @http.route(
