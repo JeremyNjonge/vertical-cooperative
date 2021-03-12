@@ -14,14 +14,17 @@ class LoanIssue(models.Model):
     _description = "Loan Issue"
 
     @api.multi
-    def _compute_subscribed_amount(self):
+    def _compute_amounts(self):
         for issue in self:
-            susbscribed_amount = 0.0
-            for line in issue.loan_issue_lines.filtered(
-                lambda record: record.state != "cancelled"
-            ):
-                susbscribed_amount += line.amount
-            issue.subscribed_amount = susbscribed_amount
+            subscription_lines = issue.loan_issue_lines.filtered(
+                lambda line: line.state != "cancelled"
+            )
+            issue.subscribed_amount = sum(subscription_lines.mapped("amount"))
+
+            paid_lines = issue.loan_issue_lines.filtered(
+                lambda line: line.state == "paid"
+            )
+            issue.paid_amount = sum(paid_lines.mapped("amount"))
 
     name = fields.Char(string="Name", translate=True)
     default_issue = fields.Boolean(string="Default issue")
@@ -33,7 +36,9 @@ class LoanIssue(models.Model):
     loan_start_date = fields.Date(string="Loan start date")
     term_date = fields.Date(string="Term date")
     loan_term = fields.Float(string="Duration of the loan in month")
-    rate = fields.Float(string="Interest rate")
+    rate = fields.Float(string="Net Interest rate")
+    gross_rate = fields.Float(string="Gross Interest rate")
+    taxes_rate = fields.Float(string="Taxes on interest", required=True)
     face_value = fields.Monetary(
         string="Facial value",
         currency_field="company_currency_id",
@@ -63,7 +68,12 @@ class LoanIssue(models.Model):
     )
     subscribed_amount = fields.Monetary(
         string="Subscribed amount",
-        compute="_compute_subscribed_amount",
+        compute="_compute_amounts",
+        currency_field="company_currency_id",
+    )
+    paid_amount = fields.Monetary(
+        string="Paid amount",
+        compute="_compute_amounts",
         currency_field="company_currency_id",
     )
     interest_payment = fields.Selection(
@@ -100,7 +110,6 @@ class LoanIssue(models.Model):
     by_company = fields.Boolean(string="By company")
     by_individual = fields.Boolean(string="By individuals")
     display_on_website = fields.Boolean(sting="Display on website")
-    taxes_rate = fields.Float(string="Taxes on interest", required=True)
 
     @api.multi
     def get_max_amount(self, partner):
@@ -226,3 +235,19 @@ class LoanIssue(models.Model):
                         "hasn't been implemented yet"
                     )
                 )
+
+    def _cron_check_subscription_end_date(self):
+        today = fields.Date.today()
+        loans_to_close = self.search(
+            [("state", "!=", "closed"), ("subscription_end_date", "<=", today)]
+        )
+        for loan in loans_to_close:
+            try:
+                loan.action_close()
+                self.env.cr.commit()
+                _logger.debug("Loan: '%s' - state: '%s'" % (loan, loan.state))
+            except Exception:
+                _logger.exception(
+                    "An exception occured while closing loan: '%s'" % (loan)
+                )
+                self.env.cr.rollback()

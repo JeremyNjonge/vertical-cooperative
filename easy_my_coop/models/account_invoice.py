@@ -113,8 +113,9 @@ class AccountInvoice(models.Model):
         return True
 
     def send_certificate_email(self, certificate_email_template, sub_reg_line):
-        # we send the email with the certificate in attachment
-        certificate_email_template.sudo().send_mail(self.partner_id.id, False)
+        if self.company_id.send_certificate_email:
+            # we send the email with the certificate in attachment
+            certificate_email_template.sudo().send_mail(self.partner_id.id, False)
 
     def set_cooperator_effective(self, effective_date):
         sub_register_obj = self.env["subscription.register"]
@@ -178,7 +179,7 @@ class AccountInvoice(models.Model):
             ):
                 # take the effective date from the payment.
                 # by default the confirmation date is the payment date
-                effective_date = datetime.now().strftime("%d/%m/%Y")
+                effective_date = datetime.now()
 
                 if invoice.payment_move_line_ids:
                     move_line = invoice.payment_move_line_ids[0]

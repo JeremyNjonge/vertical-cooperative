@@ -4,7 +4,7 @@
 
 {
     "name": "Easy My Coop Bond and Subordinated Loan Issues",
-    "version": "12.0.1.0.1",
+    "version": "12.0.1.0.2",
     "depends": ["easy_my_coop"],
     "author": "Coop IT Easy SCRLfs",
     "category": "Cooperative management",
@@ -16,10 +16,12 @@
     """,
     "data": [
         "security/ir.model.access.csv",
+        "data/actions.xml",
+        "data/ir_cron_data.xml",
+        "data/mail_template_data.xml",
         "views/loan_view.xml",
         "views/partner_view.xml",
         "views/menus.xml",
-        "data/mail_template_data.xml",
     ],
     "demo": ["demo/coop.xml"],
     "installable": True,
